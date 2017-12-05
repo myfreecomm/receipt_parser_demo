@@ -1,0 +1,2 @@
+web: bundle exec rackup -p $PORT --env $RACK_ENV
+hook: ngrok http -subdomain=nexaas-receipt-parser 5000

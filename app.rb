@@ -2,34 +2,41 @@ require 'sinatra'
 require 'sinatra/reloader' if development?
 require 'dotenv/load'
 require 'postmark'
+require 'receipt_parser'
 
 get '/' do
   "Hello World!"
 end
 
 post '/inbound' do
-  # parsing input email
   request.body.rewind
   message = Postmark::Json.decode(request.body.read)
   recipient = message['From']
 
-  # parse the input with receipt_parser and send email with the output
-  # parser = ReceiptParser::Email::Parser.new(message)
-  # result = parser.parse
-  # text_body = "Extracted data:\n Coding view: #{result.extracted_data}\n" \
-  #   "Human view: #{result.extracted_data.to_s}\n Error message: " \
-  #   "#{result.error.message}"
-  text_body = "Hey there, i'm listening you!"
-  # sending response email
+  return status 422 if recipient.nil?
+
+  parser = ReceiptParser::Email::Parser.new(
+    { html_body: message['HtmlBody'] }
+  )
+  result = parser.parse
+  if result.success?
+    text_body = "Extracted data:\n\nCoding view:\n\n" \
+      "#{result.extracted_data}\n\nHuman view:\n\n#{result.to_s}"
+    subject = 'Receipt parsing response'
+  else
+    text_body = "Error!\n#{result.error.message}"
+    subject = 'Error on parsing receipt'
+  end
+
   client = Postmark::ApiClient.new(ENV['POSTMARK_API_KEY'])
   client.deliver(
     from: ENV['POSTMARK_SENDER'],
     to: recipient,
-    subject: 'Parsing response',
+    subject: subject,
     text_body: text_body
   )
 
-  "Receipt parsed successfully and response email sent to #{message['From']}"
+  status 200
 end
 
 not_found do

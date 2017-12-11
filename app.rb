@@ -26,15 +26,11 @@ post '/inbound' do
   else
     text_body = "Error!\n#{result.error.message}"
     subject = 'Error on parsing receipt'
+    error_message = text_body + "\n\nPostmark received message:\n\n#{message}"
+    notify_team(error_message)
   end
 
-  client = Postmark::ApiClient.new(ENV['POSTMARK_API_KEY'])
-  client.deliver(
-    from: ENV['POSTMARK_SENDER'],
-    to: recipient,
-    subject: subject,
-    text_body: text_body
-  )
+  send_email(recipient, subject, text_body)
 
   status 200
 end
@@ -46,4 +42,22 @@ end
 error do
   status 500
   "Yikes, internal error."
+end
+
+def send_email(recipient, subject, text_body)
+  client = Postmark::ApiClient.new(ENV['POSTMARK_API_KEY'])
+
+  client.deliver(
+    from: ENV['POSTMARK_SENDER'],
+    to: recipient,
+    subject: subject,
+    text_body: text_body
+  )
+end
+
+def notify_team(error_message)
+  recipients = ENV['TEAM_EMAILS'].split(',')
+  subject = 'There was an error on ReceiptParser'
+
+  send_email(recipients, subject, error_message)
 end

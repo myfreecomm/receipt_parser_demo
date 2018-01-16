@@ -8,7 +8,7 @@ gem 'postmark', '1.10.0'
 gem 'dotenv', '2.2.1'
 
 source 'https://9ryw1qeUBWiPN7PsYosx@gem.fury.io/myfreecomm/' do
-  gem 'receipt_parser', '0.4.0'
+  gem 'receipt_parser', '0.5.0'
 end
 
 group :development do
